@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
 	<metadata>
-		<id>ImageResizer.Plugins.WebP</id>
-		<title>ImageResizer.Plugins.WebP - Read and write WebP images on the fly</title>
+		<id>ImageResizer.Plugins.RedEye</id>
+		<title>ImageResizer.Plugins.RedEye - Red-eye correction plugin</title>
 		<version>$version$</version>
 		<authors>$author$</authors>
 		<owners>$owners$</owners>
@@ -11,26 +11,24 @@
 		<iconUrl>$iconurl$</iconUrl>
 		<requireLicenseAcceptance>true</requireLicenseAcceptance>
 <description>
-
-Decode and encode WebP images on the fly.
-
-Docs: http://imageresizing.net/plugins/webp
+Provides automatic and manual red-eye detection and correction.
+ 
+Docs: http://imageresizing.net/plugins/redeye
 
 Support: http://imageresizing.net/support
 
 Requires license, see http://imageresizing.net/plugins
 
-$plugins$
-
-</description>
-		<tags>ImageResizer webp encode deocode weppy resizer Imazen imaging</tags>
+$plugins$</description>
+		<tags>ImageResizer RedEye face detection Imazen Resizer imaging</tags>
 		<dependencies>
 		  <dependency id="ImageResizer" version="[$version$,)" />
-		  <dependency id="Imazen.WebP" version="[$version$,)" />
+		  <dependency id="ImageResizer.Plugins.Faces" version="[$version$,)" />
+		  <dependency id="OpenCvSharp-WithoutDll" version="[2.4.10.20141111,)" />
 		</dependencies>
 	</metadata>
   	<files>
-		<file src="$pluginsdlldir$\ImageResizer.Plugins.WebP.dll" target="lib\net45" />
-		<file src="$pluginsdlldir$\ImageResizer.Plugins.WebP.xml" target="lib\net45" />
+		<file src="$pluginsdlldir$\ImageResizer.Plugins.RedEye.dll" target="lib\net45" />
+		<file src="$pluginsdlldir$\ImageResizer.Plugins.RedEye.xml" target="lib\net45" />
 	</files>
 </package>

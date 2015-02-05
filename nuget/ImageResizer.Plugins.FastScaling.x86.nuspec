@@ -23,10 +23,10 @@ $plugins$
 </description>
 		<tags>ImageResizer FastScaling Imazen Resizer imaging</tags>
 		<dependencies>
-		  <dependency id="ImageResizer"/>
+		  <dependency id="ImageResizer" version="[$version$,)" />
 		</dependencies>
 	</metadata>
   	<files>
- 		<file src="$coredlldir$\x86\ImageResizer.Plugins.FastScaling.dll" target="lib" />
+ 		<file src="$coredlldir$\x86\ImageResizer.Plugins.FastScaling.dll" target="lib\net45" />
 	</files>
 </package>

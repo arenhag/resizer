@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
 	<metadata>
-		<id>ImageResizer.Plugins.S3Reader2</id>
-		<title>ImageResizer.Plugins.S3Reader2 - Serve (and resize) images (and documents) from Amazon S3</title>
+		<id>ImageResizer.Plugins.Faces</id>
+		<title>ImageResizer.Plugins.Faces - Human face detection plugin</title>
 		<version>$version$</version>
 		<authors>$author$</authors>
 		<owners>$owners$</owners>
@@ -11,23 +11,23 @@
 		<iconUrl>$iconurl$</iconUrl>
 		<requireLicenseAcceptance>true</requireLicenseAcceptance>
 <description>
-Enables ImageResizer to access and process images from Amazon S3 buckets.
+Provides automatic face detection, as well as the CropAround plugin, which can even be combined in a single request (using &amp;c.focus=faces) to provide face-focused/face-preserving cropping.
  
-Docs: http://imageresizing.net/plugins/s3reader2
+Docs: http://imageresizing.net/plugins/faces
 
 Support: http://imageresizing.net/support
 
 Requires license, see http://imageresizing.net/plugins
 
 $plugins$</description>
-		<tags>ImageResizer S3Reader Amazon Cloud Imazen Resizer imaging</tags>
+		<tags>ImageResizer Faces face detection Imazen Resizer imaging</tags>
 		<dependencies>
 		  <dependency id="ImageResizer" version="[$version$,)" />
-		  <dependency id="AWSSDK" version="[2.0,3.0)" />
+		  <dependency id="OpenCvSharp-WithoutDll" version="[2.4.10.20141111,)" />
 		</dependencies>
 	</metadata>
   	<files>
-		<file src="$pluginsdlldir$\ImageResizer.Plugins.S3Reader2.dll" target="lib\net45" />
-		<file src="$pluginsdlldir$\ImageResizer.Plugins.S3Reader2.xml" target="lib\net45" />
+		<file src="$pluginsdlldir$\ImageResizer.Plugins.Faces.dll" target="lib\net45" />
+		<file src="$pluginsdlldir$\ImageResizer.Plugins.Faces.xml" target="lib\net45" />
 	</files>
 </package>

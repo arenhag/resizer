@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
 	<metadata>
-		<id>ImageResizer.Plugins.S3Reader2</id>
-		<title>ImageResizer.Plugins.S3Reader2 - Serve (and resize) images (and documents) from Amazon S3</title>
+		<id>ImageResizer.Plugins.FreeImage</id>
+		<title>ImageResizer.Plugins.FreeImage</title>
 		<version>$version$</version>
 		<authors>$author$</authors>
 		<owners>$owners$</owners>
@@ -11,23 +11,24 @@
 		<iconUrl>$iconurl$</iconUrl>
 		<requireLicenseAcceptance>true</requireLicenseAcceptance>
 <description>
-Enables ImageResizer to access and process images from Amazon S3 buckets.
- 
-Docs: http://imageresizing.net/plugins/s3reader2
+ImageResizer.Plugins.FreeImage contains several plugins, all based around the abilities offered by the C/C++ FreeImage library. These plugins are alpha-level.
+
+Docs: http://imageresizing.net/plugins/freeimage
 
 Support: http://imageresizing.net/support
 
 Requires license, see http://imageresizing.net/plugins
 
 $plugins$</description>
-		<tags>ImageResizer S3Reader Amazon Cloud Imazen Resizer imaging</tags>
+		<tags>ImageResizer FreeImage Imazen Resizer imaging</tags>
 		<dependencies>
 		  <dependency id="ImageResizer" version="[$version$,)" />
-		  <dependency id="AWSSDK" version="[2.0,3.0)" />
 		</dependencies>
 	</metadata>
   	<files>
-		<file src="$pluginsdlldir$\ImageResizer.Plugins.S3Reader2.dll" target="lib\net45" />
-		<file src="$pluginsdlldir$\ImageResizer.Plugins.S3Reader2.xml" target="lib\net45" />
+		<file src="$pluginsdlldir$\ImageResizer.Plugins.FreeImage.dll" target="lib\net45" />
+		<file src="$pluginsdlldir$\ImageResizer.Plugins.FreeImage.xml" target="lib\net45" />
+		<file src="$pluginsdlldir$\FreeImageNET.dll" target="lib\net45" />
+		<file src="$pluginsdlldir$\FreeImageNET.xml" target="lib\net45" />
 	</files>
 </package>

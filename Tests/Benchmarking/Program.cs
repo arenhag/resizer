@@ -16,6 +16,7 @@ using ImageResizer.Resizing;
 using System.Collections.Specialized;
 using System.Threading;
 using Imazen.Profiling;
+using System.Reflection;
 
 namespace Bench
 {
@@ -27,6 +28,8 @@ namespace Bench
         public static int ConsoleWidth = 200;
         static void Main(string[] args)
         {
+            SearchNearbyForPlugins(); 
+
             Config c = new Config();
 
             Console.WindowWidth = ConsoleWidth;
@@ -49,7 +52,9 @@ namespace Bench
             //CompareGdToDefault("bit");
             //CompareGdToDefault("encode");
 
-            CompareFreeImageToDefault();
+            //CompareFastScaling("bit");
+
+            CompareFastScalingToDefaultHQ("bit");
 
             Console.Write("Done\n");
             Console.ReadKey();
@@ -65,7 +70,33 @@ namespace Bench
             return r;
         }
 
+        public static void SearchNearbyForPlugins()
+        {
+            
+            var searchFolders = 
+               new []{Assembly.GetExecutingAssembly().Location, 
+                Assembly.GetAssembly(typeof(ImageResizer.ImageJob)).Location}
+                .SelectMany(s => new []{Path.GetDirectoryName(s), Path.GetDirectoryName(Path.GetDirectoryName(s))})
+                .SelectMany(s =>
+                    new []{ Path.Combine(s, Environment.Is64BitProcess ? "x64" : "x86"),
+                        Path.Combine(s, Environment.Is64BitProcess ? "x64" : "Win32"),
+                        s}
+                ).Distinct().Where(s => Directory.Exists(s)).ToArray();
+            
+            
+            AppDomain.CurrentDomain.AssemblyResolve += delegate(object sender, ResolveEventArgs args)
+            { 
+                var dllName = new AssemblyName(args.Name).Name + ".dll";
+                var searchLocations = searchFolders.Select(dir => Path.Combine(dir, dllName));
+                var existsAt = searchLocations.Where(p => File.Exists(p)).ToArray();
+                if (existsAt.Length < 1)
+                {
+                    throw new FileNotFoundException(dllName);
+                }
+                return Assembly.LoadFrom(existsAt.First());
 
+            };
+        }
 
    
 
@@ -113,6 +144,7 @@ namespace Bench
                 ShowProfileTree = true;
                 SegmentNameFilter = "op";
                 UseBarrierAroundSegment = false;
+                ExclusiveTimeSignificantMs = 5;
             }
             public int ThrowawayRuns { get; set; }
             public int ThrowawayThreads { get; set; }
@@ -121,6 +153,11 @@ namespace Bench
             public int ParallelRuns { get; set; }
             public int ParallelThreads { get; set; }
 
+            /// <summary>
+            /// Segments with less exclusive time than this will not be rendered
+            /// </summary>
+            /// 
+            public double ExclusiveTimeSignificantMs { get; set; }
             public ImageProvider Images { get; set; }
 
             public IEnumerable<Instructions> SharedInstructions { get; set; }
@@ -151,9 +188,15 @@ namespace Bench
             foreach (var pair in settings.Images.GetImagesAndDescriptions())
             {
                 Console.WriteLine();
-                Console.WriteLine("Using {0} seq. runs, {1} || on {2} threads. Filter segment '{4}'{5} Data: {3}", 
-                    settings.SequentialRuns,settings.ParallelRuns,settings.ParallelThreads,pair.Item2, settings.SegmentNameFilter,
-                    settings.UseBarrierAroundSegment ? " WITH Memory Barrier" : "");
+                String isolation = (settings.SegmentNameFilter != "op" && !settings.UseBarrierAroundSegment) ? 
+                                "Measuring '" + settings.SegmentNameFilter + "' without memory barrier; multi-threaded results invalid." 
+                                : (settings.UseBarrierAroundSegment ? "Segment '" +  settings.SegmentNameFilter + "' w/ mem barrier." 
+                                : "Segment '" + settings.SegmentNameFilter +"'.");
+
+
+                Console.WriteLine("Using {0} seq. runs, {1} || on {2} threads({5}). {4} Input: {3}", 
+                    settings.SequentialRuns,settings.ParallelRuns,settings.ParallelThreads,pair.Item2, isolation,
+                    Environment.Is64BitProcess ? "64-bit" : "32-bit");
 
                 var widths = CalcColumnWidths(ConsoleWidth, 4, -2, -2, -2, -4);
 
@@ -191,6 +234,7 @@ namespace Bench
                         if (settings.ShowProfileTree)
                         {
                             var f = new ConcurrencyResultFormatter();
+                            f.ExclusiveTimeSignificantMs = settings.ExclusiveTimeSignificantMs;
                             Console.WriteLine(f.PrintCallTree(set));
                         }
                         return new Tuple<string, IConcurrencyResults>(triple.Item3, set);
@@ -326,6 +370,110 @@ namespace Bench
 
         }
 
+        public static BenchmarkingSettings BenchmarkingDefaults()
+        {
+            var settings = new BenchmarkingSettings();
+            settings.Images = new ImageProvider(); 
+            settings.ExcludeEncoding = false;
+            settings.ExcludeDecoding = false;
+            settings.ExcludeBuilding = false;
+            settings.ExcludeIO = true;
+            settings.ParallelRuns = 2;
+
+            settings.ParallelThreads = 8;
+            settings.SequentialRuns = 16;
+            settings.ThrowawayRuns = 2;
+            settings.ThrowawayThreads = 8;
+            settings.UseBarrierAroundSegment = true;
+            return settings;
+        }
+        public static BenchmarkingSettings ScalingComparisonDefault()
+        {
+            var settings = BenchmarkingDefaults();
+            settings.Images.AddBlankImages(new Tuple<int, int, string>[] { new Tuple<int, int, string>(3264, 2448, "jpg"), new Tuple<int, int, string>(1200, 900, "png") });
+            settings.SharedInstructions = new Instructions[]{new Instructions(
+                "width=800&scale=both") , new Instructions("width=200&scale=both")};
+            return settings;
+        }
+
+        public static void CheckFastScalingMemoryUse()
+        {
+            var imageSrc = new ImageProvider().AddBlankImages(new Tuple<int, int, string>[] { new Tuple<int, int, string>(4000, 4000, "jpg") });
+            imageSrc.PrepareImagesAsync().Wait();
+            var runner = Benchmark.BenchmarkInMemory(ConfigWithPlugins("FastScaling"), imageSrc.GetImages().First(),
+                new Instructions("builder=gd&width=400"), false, false);
+            runner.Label = "FastScaling";
+            CheckMemoryUse(runner, 2);
+        }
+
+
+        public static void CompareFastScalingToDefault(string segment = "op")
+        {
+            var settings = BenchmarkingDefaults();
+            settings.Images.AddBlankImages(
+                new Tuple<int, int, string>[] { new Tuple<int, int, string>(4000, 3000, "jpg"), new Tuple<int, int, string>(1600, 800, "png") });
+            settings.SharedInstructions = new Instructions[]{new Instructions(
+                "width=800&scale=both") , new Instructions("width=200&scale=both")};
+     
+            settings.SegmentNameFilter = segment;
+            settings.ExclusiveTimeSignificantMs = 1;
+            var configs = new Tuple<Config, Instructions, string>[]{
+                    new Tuple<Config, Instructions, string>(ConfigWithPlugins(),null,"System.Drawing"),
+                    new Tuple<Config, Instructions, string>(ConfigWithPlugins("ImageResizer.Plugins.FastScaling.FastScalingPlugin, ImageResizer.Plugins.FastScaling"),new Instructions("fastscale=true;turbo=true;min_scaled_weighted=0"),"FastScaling")};
+
+            Compare(settings, configs.Reverse());
+
+
+        }
+
+        public static void CompareFastScalingToDefaultHQ(string segment = "op")
+        {
+            var settings = BenchmarkingDefaults();
+            settings.Images.AddBlankImages(
+                new Tuple<int, int, string>[] { new Tuple<int, int, string>(4000, 3000, "jpg"), new Tuple<int, int, string>(1600, 800, "png") });
+            settings.SharedInstructions = new Instructions[]{new Instructions(
+                "width=800&scale=both") , new Instructions("width=200&scale=both")};
+
+            settings.SegmentNameFilter = segment;
+            settings.ExclusiveTimeSignificantMs = 1;
+            var configs = new Tuple<Config, Instructions, string>[]{
+                    new Tuple<Config, Instructions, string>(ConfigWithPlugins(),null,"System.Drawing"),
+                    new Tuple<Config, Instructions, string>(ConfigWithPlugins("ImageResizer.Plugins.FastScaling.FastScalingPlugin, ImageResizer.Plugins.FastScaling"),new Instructions("fastscale=true;window=1.4"),"FastScaling with superior quality")};
+
+            Compare(settings, configs.Reverse());
+
+
+        }
+
+
+
+        public static void CompareFastScaling(string segment = "op")
+        {
+            var settings = ScalingComparisonDefault();
+            settings.SegmentNameFilter = segment;
+            var c = ConfigWithPlugins("ImageResizer.Plugins.FastScaling.FastScalingPlugin, ImageResizer.Plugins.FastScaling");
+            var configs = new Tuple<Config, Instructions, string>[]{
+                    new Tuple<Config, Instructions, string>(new Config(),null,"System.Drawing"),
+                    new Tuple<Config, Instructions, string>(c,new Instructions("&fastscale=true"),"FastScaling Bicubic - no skipped source pixels"),
+                    new Tuple<Config, Instructions, string>(c,new Instructions("&fastscale=true&window=1.4"),"FastScaling Bicubic w/ 6x window size (GDI HQ Bicubic prefilter equivalent)"),
+                    new Tuple<Config, Instructions, string>(c,new Instructions("&fastscale=true&turbo=true"),"FastScaling+Halving"),
+                    new Tuple<Config, Instructions, string>(c,new Instructions("&fastscale=true&f=7&window=1.4"),"FastScaling6X Lanczos")};
+
+            Compare(settings, configs.Reverse());
+        }
+
+        public static void CompareFastScalingWindows(string segment = "op")
+        {
+            var settings = ScalingComparisonDefault();
+            settings.SegmentNameFilter = segment;
+            var c = ConfigWithPlugins("ImageResizer.Plugins.FastScaling.FastScalingPlugin, ImageResizer.Plugins.FastScaling");
+            var configs = new Tuple<Config, Instructions, string>[]{
+                    new Tuple<Config, Instructions, string>(c,new Instructions("&fastscale=true&window=1.3"),"FastScaling with large window (1.3)"),
+                    new Tuple<Config, Instructions, string>(c,new Instructions("&fastscale=true&window=0.5"),"FastScaling with standard window (0.5)")};
+
+            Compare(settings, configs);
+        }
+
 
         private static NameValueCollection AutoLoadNative()
         {
@@ -333,6 +481,7 @@ namespace Bench
             n["downloadNativeDependencies"] = "true";
             return n;
         }
+
         public static void CompareFreeImageEncoderToDefault()
         {
             string[] images = new string[] { imageDir + "quality-original.jpg", imageDir + "fountain-small.jpg", 

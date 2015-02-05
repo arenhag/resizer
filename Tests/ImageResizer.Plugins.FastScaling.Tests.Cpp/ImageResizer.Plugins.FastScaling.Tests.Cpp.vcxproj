@@ -155,7 +155,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+<<<<<<< HEAD
     <ClInclude Include="..\..\Plugins\ImageResizer.Plugins.FastScaling\weighting.h" />
+=======
+    <ClInclude Include="..\..\Plugins\FastScaling\weighting.h" />
+>>>>>>> develop
     <ClInclude Include="ImageResizer.Plugins.FastScaling.Tests.Cpp.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stdafx.h" />
